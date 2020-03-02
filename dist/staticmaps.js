@@ -76,7 +76,8 @@ function () {
     this.paddingX = this.options.paddingX || 0;
     this.paddingY = this.options.paddingY || 0;
     this.padding = [this.paddingX, this.paddingY];
-    this.tileUrl = this.options.tileUrl || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+    this.tileUrl = this.options.tileUrl;
+    this.tileLoader = this.options.tileLoader || this.getTile.bind(this);
     this.tileSize = this.options.tileSize || 256;
     this.tileRequestTimeout = this.options.tileRequestTimeout;
     this.tileRequestHeader = this.options.tileRequestHeader;
@@ -237,43 +238,75 @@ function () {
     }
   }, {
     key: "drawBaselayer",
-    value: function drawBaselayer() {
-      var _this = this;
+    value: function () {
+      var _drawBaselayer = (0, _asyncToGenerator2["default"])(
+      /*#__PURE__*/
+      _regenerator["default"].mark(function _callee() {
+        var _this = this;
 
-      var xMin = Math.floor(this.centerX - 0.5 * this.width / this.tileSize);
-      var yMin = Math.floor(this.centerY - 0.5 * this.height / this.tileSize);
-      var xMax = Math.ceil(this.centerX + 0.5 * this.width / this.tileSize);
-      var yMax = Math.ceil(this.centerY + 0.5 * this.height / this.tileSize);
-      var result = [];
+        var xMin, yMin, xMax, yMax, result, x, y, maxTile, tileX, tileY, values;
+        return _regenerator["default"].wrap(function _callee$(_context) {
+          while (1) {
+            switch (_context.prev = _context.next) {
+              case 0:
+                if (this.tileUrl) {
+                  _context.next = 2;
+                  break;
+                }
 
-      for (var x = xMin; x < xMax; x++) {
-        for (var y = yMin; y < yMax; y++) {
-          // # x and y may have crossed the date line
-          var maxTile = Math.pow(2, this.zoom);
-          var tileX = (x + maxTile) % maxTile;
-          var tileY = (y + maxTile) % maxTile;
-          if (this.reverseY) tileY = (1 << this.zoom) - tileY - 1;
-          result.push({
-            url: this.tileUrl.replace('{z}', this.zoom).replace('{x}', tileX).replace('{y}', tileY),
-            box: [this.xToPx(x), this.yToPx(y), this.xToPx(x + 1), this.yToPx(y + 1)]
-          });
-        }
+                return _context.abrupt("return", this.image.draw([]));
+
+              case 2:
+                xMin = Math.floor(this.centerX - 0.5 * this.width / this.tileSize);
+                yMin = Math.floor(this.centerY - 0.5 * this.height / this.tileSize);
+                xMax = Math.ceil(this.centerX + 0.5 * this.width / this.tileSize);
+                yMax = Math.ceil(this.centerY + 0.5 * this.height / this.tileSize);
+                result = [];
+
+                for (x = xMin; x < xMax; x++) {
+                  for (y = yMin; y < yMax; y++) {
+                    // # x and y may have crossed the date line
+                    maxTile = Math.pow(2, this.zoom);
+                    tileX = (x + maxTile) % maxTile;
+                    tileY = (y + maxTile) % maxTile;
+                    if (this.reverseY) tileY = (1 << this.zoom) - tileY - 1;
+                    result.push({
+                      z: this.zoom,
+                      x: tileX,
+                      y: tileY,
+                      url: this.tileUrl.replace('{z}', this.zoom).replace('{x}', tileX).replace('{y}', tileY),
+                      box: [this.xToPx(x), this.yToPx(y), this.xToPx(x + 1), this.yToPx(y + 1)]
+                    });
+                  }
+                }
+
+                _context.next = 10;
+                return Promise.all(result.map(function (r) {
+                  return _this.tileLoader(r);
+                }));
+
+              case 10:
+                values = _context.sent;
+                return _context.abrupt("return", this.image.draw(values.filter(function (v) {
+                  return v.success;
+                }).map(function (v) {
+                  return v.tile;
+                })));
+
+              case 12:
+              case "end":
+                return _context.stop();
+            }
+          }
+        }, _callee, this);
+      }));
+
+      function drawBaselayer() {
+        return _drawBaselayer.apply(this, arguments);
       }
 
-      var tilePromises = [];
-      result.forEach(function (r) {
-        tilePromises.push(_this.getTile(r));
-      });
-      return new Promise(function (resolve, reject) {
-        Promise.all(tilePromises).then(function (values) {
-          return _this.image.draw(values.filter(function (v) {
-            return v.success;
-          }).map(function (v) {
-            return v.tile;
-          }));
-        }).then(resolve)["catch"](reject);
-      });
-    }
+      return drawBaselayer;
+    }()
   }, {
     key: "drawFeatures",
     value: function drawFeatures() {
@@ -289,11 +322,11 @@ function () {
       function () {
         var _ref = (0, _asyncToGenerator2["default"])(
         /*#__PURE__*/
-        _regenerator["default"].mark(function _callee2(resolve) {
+        _regenerator["default"].mark(function _callee3(resolve) {
           var queue;
-          return _regenerator["default"].wrap(function _callee2$(_context2) {
+          return _regenerator["default"].wrap(function _callee3$(_context3) {
             while (1) {
-              switch (_context2.prev = _context2.next) {
+              switch (_context3.prev = _context3.next) {
                 case 0:
                   if (!_this2.text.length) resolve(true);
                   queue = [];
@@ -303,24 +336,24 @@ function () {
                     /*#__PURE__*/
                     (0, _asyncToGenerator2["default"])(
                     /*#__PURE__*/
-                    _regenerator["default"].mark(function _callee() {
-                      return _regenerator["default"].wrap(function _callee$(_context) {
+                    _regenerator["default"].mark(function _callee2() {
+                      return _regenerator["default"].wrap(function _callee2$(_context2) {
                         while (1) {
-                          switch (_context.prev = _context.next) {
+                          switch (_context2.prev = _context2.next) {
                             case 0:
-                              _context.next = 2;
+                              _context2.next = 2;
                               return _this2.renderText(text);
 
                             case 2:
                             case "end":
-                              return _context.stop();
+                              return _context2.stop();
                           }
                         }
-                      }, _callee);
+                      }, _callee2);
                     })));
                   });
 
-                  _context2.next = 5;
+                  _context3.next = 5;
                   return (0, _asyncQueue["default"])(queue);
 
                 case 5:
@@ -328,10 +361,10 @@ function () {
 
                 case 6:
                 case "end":
-                  return _context2.stop();
+                  return _context3.stop();
               }
             }
-          }, _callee2);
+          }, _callee3);
         }));
 
         return function (_x) {
@@ -348,16 +381,16 @@ function () {
     value: function () {
       var _renderText = (0, _asyncToGenerator2["default"])(
       /*#__PURE__*/
-      _regenerator["default"].mark(function _callee3(text) {
+      _regenerator["default"].mark(function _callee4(text) {
         var _this3 = this;
 
         var baseImage;
-        return _regenerator["default"].wrap(function _callee3$(_context3) {
+        return _regenerator["default"].wrap(function _callee4$(_context4) {
           while (1) {
-            switch (_context3.prev = _context3.next) {
+            switch (_context4.prev = _context4.next) {
               case 0:
                 baseImage = (0, _sharp["default"])(this.image.image);
-                return _context3.abrupt("return", new Promise(function (resolve, reject) {
+                return _context4.abrupt("return", new Promise(function (resolve, reject) {
                   var mapcoords = [_this3.xToPx(lonToX(text.coord[0], _this3.zoom)), _this3.yToPx(latToY(text.coord[1], _this3.zoom))];
                   baseImage.metadata().then(function (imageMetadata) {
                     var svgPath = "\n            <svg\n              width=\"".concat(imageMetadata.width, "px\"\n              height=\"").concat(imageMetadata.height, "px\"\n              version=\"1.1\"\n              xmlns=\"http://www.w3.org/2000/svg\">\n              <text\n                x=\"").concat(mapcoords[0], "\"\n                y=\"").concat(mapcoords[1], "\"\n                style=\"fill-rule: inherit; font-family: ").concat(text.font, ";\"\n                font-size=\"").concat(text.size, "pt\"\n                stroke=\"").concat(text.color, "\"\n                fill=\"").concat(text.fill ? text.fill : 'none', "\"\n                stroke-width=\"").concat(text.width, "\"\n                text-anchor=\"").concat(text.anchor, "\"\n              >\n                  ").concat(text.text, "</text>\n            </svg>");
@@ -374,10 +407,10 @@ function () {
 
               case 2:
               case "end":
-                return _context3.stop();
+                return _context4.stop();
             }
           }
-        }, _callee3, this);
+        }, _callee4, this);
       }));
 
       function renderText(_x2) {
@@ -391,45 +424,45 @@ function () {
     value: function () {
       var _drawLines = (0, _asyncToGenerator2["default"])(
       /*#__PURE__*/
-      _regenerator["default"].mark(function _callee4() {
+      _regenerator["default"].mark(function _callee5() {
         var _this4 = this;
 
         var chunks, baseImage, imageMetadata, processedChunks;
-        return _regenerator["default"].wrap(function _callee4$(_context4) {
+        return _regenerator["default"].wrap(function _callee5$(_context5) {
           while (1) {
-            switch (_context4.prev = _context4.next) {
+            switch (_context5.prev = _context5.next) {
               case 0:
                 if (this.lines.length) {
-                  _context4.next = 2;
+                  _context5.next = 2;
                   break;
                 }
 
-                return _context4.abrupt("return", true);
+                return _context5.abrupt("return", true);
 
               case 2:
                 chunks = (0, _lodash3["default"])(this.lines, LINE_RENDER_CHUNK_SIZE);
                 baseImage = (0, _sharp["default"])(this.image.image);
-                _context4.next = 6;
+                _context5.next = 6;
                 return baseImage.metadata();
 
               case 6:
-                imageMetadata = _context4.sent;
+                imageMetadata = _context5.sent;
                 processedChunks = chunks.map(function (c) {
                   return _this4.processChunk(c, imageMetadata);
                 });
-                _context4.next = 10;
+                _context5.next = 10;
                 return baseImage.composite(processedChunks).toBuffer();
 
               case 10:
-                this.image.image = _context4.sent;
-                return _context4.abrupt("return", true);
+                this.image.image = _context5.sent;
+                return _context5.abrupt("return", true);
 
               case 12:
               case "end":
-                return _context4.stop();
+                return _context5.stop();
             }
           }
-        }, _callee4, this);
+        }, _callee5, this);
       }));
 
       function drawLines() {
@@ -473,24 +506,24 @@ function () {
         /*#__PURE__*/
         (0, _asyncToGenerator2["default"])(
         /*#__PURE__*/
-        _regenerator["default"].mark(function _callee5() {
+        _regenerator["default"].mark(function _callee6() {
           var top, left;
-          return _regenerator["default"].wrap(function _callee5$(_context5) {
+          return _regenerator["default"].wrap(function _callee6$(_context6) {
             while (1) {
-              switch (_context5.prev = _context5.next) {
+              switch (_context6.prev = _context6.next) {
                 case 0:
                   top = Math.round(marker.position[1]);
                   left = Math.round(marker.position[0]);
 
                   if (!(top < 0 || left < 0 || top > _this7.height || left > _this7.width)) {
-                    _context5.next = 4;
+                    _context6.next = 4;
                     break;
                   }
 
-                  return _context5.abrupt("return");
+                  return _context6.abrupt("return");
 
                 case 4:
-                  _context5.next = 6;
+                  _context6.next = 6;
                   return (0, _sharp["default"])(_this7.image.image).composite([{
                     input: marker.imgData,
                     top: top,
@@ -498,14 +531,14 @@ function () {
                   }]).toBuffer();
 
                 case 6:
-                  _this7.image.image = _context5.sent;
+                  _this7.image.image = _context6.sent;
 
                 case 7:
                 case "end":
-                  return _context5.stop();
+                  return _context6.stop();
               }
             }
-          }, _callee5);
+          }, _callee6);
         })));
       });
       return (0, _asyncQueue["default"])(queue);
@@ -532,22 +565,22 @@ function () {
         function () {
           var _ref4 = (0, _asyncToGenerator2["default"])(
           /*#__PURE__*/
-          _regenerator["default"].mark(function _callee6(ico) {
+          _regenerator["default"].mark(function _callee7(ico) {
             var icon, isUrl, img;
-            return _regenerator["default"].wrap(function _callee6$(_context6) {
+            return _regenerator["default"].wrap(function _callee7$(_context7) {
               while (1) {
-                switch (_context6.prev = _context6.next) {
+                switch (_context7.prev = _context7.next) {
                   case 0:
                     icon = ico;
                     isUrl = !!_url["default"].parse(icon.file).hostname;
-                    _context6.prev = 2;
+                    _context7.prev = 2;
 
                     if (!isUrl) {
-                      _context6.next = 12;
+                      _context7.next = 12;
                       break;
                     }
 
-                    _context6.next = 6;
+                    _context7.next = 6;
                     return _requestPromise["default"].get({
                       rejectUnauthorized: false,
                       url: icon.file,
@@ -555,30 +588,30 @@ function () {
                     });
 
                   case 6:
-                    img = _context6.sent;
-                    _context6.next = 9;
+                    img = _context7.sent;
+                    _context7.next = 9;
                     return (0, _sharp["default"])(img).toBuffer();
 
                   case 9:
-                    icon.data = _context6.sent;
-                    _context6.next = 15;
+                    icon.data = _context7.sent;
+                    _context7.next = 15;
                     break;
 
                   case 12:
-                    _context6.next = 14;
+                    _context7.next = 14;
                     return (0, _sharp["default"])(icon.file).toBuffer();
 
                   case 14:
-                    icon.data = _context6.sent;
+                    icon.data = _context7.sent;
 
                   case 15:
-                    _context6.next = 20;
+                    _context7.next = 20;
                     break;
 
                   case 17:
-                    _context6.prev = 17;
-                    _context6.t0 = _context6["catch"](2);
-                    reject(_context6.t0);
+                    _context7.prev = 17;
+                    _context7.t0 = _context7["catch"](2);
+                    reject(_context7.t0);
 
                   case 20:
                     if (count++ === icons.length) {
@@ -597,10 +630,10 @@ function () {
 
                   case 21:
                   case "end":
-                    return _context6.stop();
+                    return _context7.stop();
                 }
               }
-            }, _callee6, null, [[2, 17]]);
+            }, _callee7, null, [[2, 17]]);
           }));
 
           return function (_x3) {
@@ -618,7 +651,7 @@ function () {
     value: function getTile(data) {
       var _this9 = this;
 
-      return new Promise(function (resolve) {
+      return new Promise(function (resolve, reject) {
         var options = {
           url: data.url,
           encoding: null,
@@ -639,10 +672,14 @@ function () {
             }
           });
         })["catch"](function (error) {
-          return resolve({
-            success: false,
-            error: error
-          });
+          if (error.status === 404) {
+            resolve({
+              success: false,
+              error: error
+            });
+          } else {
+            reject(error);
+          }
         });
       });
     }

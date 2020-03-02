@@ -21,8 +21,6 @@ var _sharp = _interopRequireDefault(require("sharp"));
 
 var _lodash = _interopRequireDefault(require("lodash.last"));
 
-var _asyncQueue = _interopRequireDefault(require("./helper/asyncQueue"));
-
 function ownKeys(object, enumerableOnly) { var keys = Object.keys(object); if (Object.getOwnPropertySymbols) { var symbols = Object.getOwnPropertySymbols(object); if (enumerableOnly) symbols = symbols.filter(function (sym) { return Object.getOwnPropertyDescriptor(object, sym).enumerable; }); keys.push.apply(keys, symbols); } return keys; }
 
 function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i] != null ? arguments[i] : {}; if (i % 2) { ownKeys(source, true).forEach(function (key) { (0, _defineProperty2["default"])(target, key, source[key]); }); } else if (Object.getOwnPropertyDescriptors) { Object.defineProperties(target, Object.getOwnPropertyDescriptors(source)); } else { ownKeys(source).forEach(function (key) { Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key)); }); } } return target; }
@@ -100,124 +98,64 @@ function () {
     value: function () {
       var _draw = (0, _asyncToGenerator2["default"])(
       /*#__PURE__*/
-      _regenerator["default"].mark(function _callee3(tiles) {
+      _regenerator["default"].mark(function _callee(tiles) {
         var _this2 = this;
 
-        return _regenerator["default"].wrap(function _callee3$(_context3) {
+        var baselayer, preparedTiles;
+        return _regenerator["default"].wrap(function _callee$(_context) {
           while (1) {
-            switch (_context3.prev = _context3.next) {
+            switch (_context.prev = _context.next) {
               case 0:
-                return _context3.abrupt("return", new Promise(
-                /*#__PURE__*/
-                function () {
-                  var _ref = (0, _asyncToGenerator2["default"])(
-                  /*#__PURE__*/
-                  _regenerator["default"].mark(function _callee2(resolve) {
-                    var baselayer, tempbuffer, tileParts, preparedTiles, queue;
-                    return _regenerator["default"].wrap(function _callee2$(_context2) {
-                      while (1) {
-                        switch (_context2.prev = _context2.next) {
-                          case 0:
-                            // Generate baseimage
-                            baselayer = (0, _sharp["default"])({
-                              create: {
-                                width: _this2.width,
-                                height: _this2.height,
-                                channels: 4,
-                                background: {
-                                  r: 0,
-                                  g: 0,
-                                  b: 0,
-                                  alpha: 0
-                                }
-                              }
-                            }); // Save baseimage as buffer
+                // Generate baseimage
+                baselayer = (0, _sharp["default"])({
+                  create: {
+                    width: this.width,
+                    height: this.height,
+                    channels: 4,
+                    background: {
+                      r: 0,
+                      g: 0,
+                      b: 0,
+                      alpha: 0
+                    }
+                  }
+                }); // Prepare tiles for composing baselayer
 
-                            _context2.next = 3;
-                            return baselayer.png().toBuffer();
+                _context.next = 3;
+                return Promise.all(tiles.map(function (tile, i) {
+                  return _this2.prepareTileParts(tile, i);
+                }));
 
-                          case 3:
-                            tempbuffer = _context2.sent;
-                            // Prepare tiles for composing baselayer
-                            tileParts = [];
-                            tiles.forEach(function (tile, i) {
-                              tileParts.push(_this2.prepareTileParts(tile, i));
-                            });
-                            _context2.next = 8;
-                            return Promise.all(tileParts);
+              case 3:
+                _context.t0 = function (v) {
+                  return v.success;
+                };
 
-                          case 8:
-                            _context2.t0 = function (v) {
-                              return v.success;
-                            };
+                preparedTiles = _context.sent.filter(_context.t0);
+                _context.next = 7;
+                return preparedTiles.reduce(function (prevPromise, preparedTile) {
+                  return prevPromise.then(function (tempbuffer) {
+                    if (!preparedTile) return Promise.resolve(tempbuffer);
+                    var position = preparedTile.position,
+                        data = preparedTile.data;
+                    position.top = Math.round(position.top);
+                    position.left = Math.round(position.left);
+                    return (0, _sharp["default"])(tempbuffer).composite([_objectSpread({
+                      input: data
+                    }, position)]).toBuffer();
+                  });
+                }, baselayer.png().toBuffer());
 
-                            preparedTiles = _context2.sent.filter(_context2.t0);
-                            // Compose all prepared tiles to the baselayer
-                            queue = [];
-                            preparedTiles.forEach(function (preparedTile) {
-                              queue.push(
-                              /*#__PURE__*/
-                              (0, _asyncToGenerator2["default"])(
-                              /*#__PURE__*/
-                              _regenerator["default"].mark(function _callee() {
-                                var position, data;
-                                return _regenerator["default"].wrap(function _callee$(_context) {
-                                  while (1) {
-                                    switch (_context.prev = _context.next) {
-                                      case 0:
-                                        if (preparedTile) {
-                                          _context.next = 2;
-                                          break;
-                                        }
+              case 7:
+                this.image = _context.sent;
+                return _context.abrupt("return", true);
 
-                                        return _context.abrupt("return");
-
-                                      case 2:
-                                        position = preparedTile.position, data = preparedTile.data;
-                                        position.top = Math.round(position.top);
-                                        position.left = Math.round(position.left);
-                                        _context.next = 7;
-                                        return (0, _sharp["default"])(tempbuffer).composite([_objectSpread({
-                                          input: data
-                                        }, position)]).toBuffer();
-
-                                      case 7:
-                                        tempbuffer = _context.sent;
-
-                                      case 8:
-                                      case "end":
-                                        return _context.stop();
-                                    }
-                                  }
-                                }, _callee);
-                              })));
-                            });
-                            _context2.next = 14;
-                            return (0, _asyncQueue["default"])(queue);
-
-                          case 14:
-                            _this2.image = tempbuffer;
-                            resolve(true);
-
-                          case 16:
-                          case "end":
-                            return _context2.stop();
-                        }
-                      }
-                    }, _callee2);
-                  }));
-
-                  return function (_x2) {
-                    return _ref.apply(this, arguments);
-                  };
-                }()));
-
-              case 1:
+              case 9:
               case "end":
-                return _context3.stop();
+                return _context.stop();
             }
           }
-        }, _callee3);
+        }, _callee, this);
       }));
 
       function draw(_x) {
@@ -232,73 +170,63 @@ function () {
 
   }, {
     key: "save",
-    value: function save() {
-      var _this3 = this;
-
-      var fileName = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 'output.png';
-      var outOpts = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var format = (0, _lodash["default"])(fileName.split('.'));
-      var outputOptions = outOpts;
-      outputOptions.quality = outputOptions.quality || this.quality;
-      return new Promise(
+    value: function () {
+      var _save = (0, _asyncToGenerator2["default"])(
       /*#__PURE__*/
-      function () {
-        var _ref3 = (0, _asyncToGenerator2["default"])(
-        /*#__PURE__*/
-        _regenerator["default"].mark(function _callee4(resolve, reject) {
-          return _regenerator["default"].wrap(function _callee4$(_context4) {
-            while (1) {
-              switch (_context4.prev = _context4.next) {
-                case 0:
-                  _context4.prev = 0;
-                  _context4.t0 = format.toLowerCase();
-                  _context4.next = _context4.t0 === 'webp' ? 4 : _context4.t0 === 'jpg' ? 7 : _context4.t0 === 'jpeg' ? 7 : _context4.t0 === 'png' ? 10 : 10;
-                  break;
+      _regenerator["default"].mark(function _callee2() {
+        var fileName,
+            outOpts,
+            format,
+            outputOptions,
+            _args2 = arguments;
+        return _regenerator["default"].wrap(function _callee2$(_context2) {
+          while (1) {
+            switch (_context2.prev = _context2.next) {
+              case 0:
+                fileName = _args2.length > 0 && _args2[0] !== undefined ? _args2[0] : 'output.png';
+                outOpts = _args2.length > 1 && _args2[1] !== undefined ? _args2[1] : {};
+                format = (0, _lodash["default"])(fileName.split('.'));
+                outputOptions = outOpts;
+                outputOptions.quality = outputOptions.quality || this.quality;
+                _context2.t0 = format.toLowerCase();
+                _context2.next = _context2.t0 === 'webp' ? 8 : _context2.t0 === 'jpg' ? 11 : _context2.t0 === 'jpeg' ? 11 : _context2.t0 === 'png' ? 14 : 14;
+                break;
 
-                case 4:
-                  _context4.next = 6;
-                  return (0, _sharp["default"])(_this3.image).webp(outputOptions).toFile(fileName);
+              case 8:
+                _context2.next = 10;
+                return (0, _sharp["default"])(this.image).webp(outputOptions).toFile(fileName);
 
-                case 6:
-                  return _context4.abrupt("break", 13);
+              case 10:
+                return _context2.abrupt("break", 17);
 
-                case 7:
-                  _context4.next = 9;
-                  return (0, _sharp["default"])(_this3.image).jpeg(outputOptions).toFile(fileName);
+              case 11:
+                _context2.next = 13;
+                return (0, _sharp["default"])(this.image).jpeg(outputOptions).toFile(fileName);
 
-                case 9:
-                  return _context4.abrupt("break", 13);
+              case 13:
+                return _context2.abrupt("break", 17);
 
-                case 10:
-                  _context4.next = 12;
-                  return (0, _sharp["default"])(_this3.image).png(outputOptions).toFile(fileName);
+              case 14:
+                _context2.next = 16;
+                return (0, _sharp["default"])(this.image).png(outputOptions).toFile(fileName);
 
-                case 12:
-                  return _context4.abrupt("break", 13);
+              case 16:
+                return _context2.abrupt("break", 17);
 
-                case 13:
-                  resolve();
-                  _context4.next = 19;
-                  break;
-
-                case 16:
-                  _context4.prev = 16;
-                  _context4.t1 = _context4["catch"](0);
-                  reject(_context4.t1);
-
-                case 19:
-                case "end":
-                  return _context4.stop();
-              }
+              case 17:
+              case "end":
+                return _context2.stop();
             }
-          }, _callee4, null, [[0, 16]]);
-        }));
+          }
+        }, _callee2, this);
+      }));
 
-        return function (_x3, _x4) {
-          return _ref3.apply(this, arguments);
-        };
-      }());
-    }
+      function save() {
+        return _save.apply(this, arguments);
+      }
+
+      return save;
+    }()
     /**
      * Return image as buffer
      */
@@ -306,66 +234,23 @@ function () {
   }, {
     key: "buffer",
     value: function buffer() {
-      var _this4 = this;
-
       var mime = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 'image/png';
       var outOpts = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
       var outputOptions = outOpts;
       outputOptions.quality = outputOptions.quality || this.quality;
-      return new Promise(
-      /*#__PURE__*/
-      function () {
-        var _ref4 = (0, _asyncToGenerator2["default"])(
-        /*#__PURE__*/
-        _regenerator["default"].mark(function _callee5(resolve) {
-          var buffer;
-          return _regenerator["default"].wrap(function _callee5$(_context5) {
-            while (1) {
-              switch (_context5.prev = _context5.next) {
-                case 0:
-                  _context5.t0 = mime.toLowerCase();
-                  _context5.next = _context5.t0 === 'image/webp' ? 3 : _context5.t0 === 'image/jpeg' ? 7 : _context5.t0 === 'image/jpg' ? 7 : _context5.t0 === 'image/png' ? 11 : 11;
-                  break;
 
-                case 3:
-                  _context5.next = 5;
-                  return (0, _sharp["default"])(_this4.image).webp(outputOptions).toBuffer();
+      switch (mime.toLowerCase()) {
+        case 'image/webp':
+          return (0, _sharp["default"])(this.image).webp(outputOptions).toBuffer();
 
-                case 5:
-                  buffer = _context5.sent;
-                  return _context5.abrupt("break", 15);
+        case 'image/jpeg':
+        case 'image/jpg':
+          return (0, _sharp["default"])(this.image).jpeg(outputOptions).toBuffer();
 
-                case 7:
-                  _context5.next = 9;
-                  return (0, _sharp["default"])(_this4.image).jpeg(outputOptions).toBuffer();
-
-                case 9:
-                  buffer = _context5.sent;
-                  return _context5.abrupt("break", 15);
-
-                case 11:
-                  _context5.next = 13;
-                  return (0, _sharp["default"])(_this4.image).png(outputOptions).toBuffer();
-
-                case 13:
-                  buffer = _context5.sent;
-                  return _context5.abrupt("break", 15);
-
-                case 15:
-                  resolve(buffer);
-
-                case 16:
-                case "end":
-                  return _context5.stop();
-              }
-            }
-          }, _callee5);
-        }));
-
-        return function (_x5) {
-          return _ref4.apply(this, arguments);
-        };
-      }());
+        case 'image/png':
+        default:
+          return (0, _sharp["default"])(this.image).png(outputOptions).toBuffer();
+      }
     }
   }]);
   return Image;
