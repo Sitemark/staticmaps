@@ -5,7 +5,6 @@ import uniqBy from 'lodash.uniqby';
 import url from 'url';
 import process from 'process';
 import chunk from 'lodash.chunk';
-
 import Image from './image';
 import IconMarker from './marker';
 import Polyline from './polyline';
@@ -36,6 +35,7 @@ class StaticMaps {
     this.paddingY = this.options.paddingY || 0;
     this.padding = [this.paddingX, this.paddingY];
     this.tileUrl = this.options.tileUrl || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+    this.tileLoader = this.options.tileLoader || this.getTile.bind(this);
     this.tileSize = this.options.tileSize || 256;
     this.tileRequestTimeout = this.options.tileRequestTimeout;
     this.tileRequestHeader = this.options.tileRequestHeader;
@@ -193,7 +193,7 @@ class StaticMaps {
     return Number(Math.round(px));
   }
 
-  drawBaselayer() {
+  async drawBaselayer() {
     const xMin = Math.floor(this.centerX - (0.5 * this.width / this.tileSize));
     const yMin = Math.floor(this.centerY - (0.5 * this.height / this.tileSize));
     const xMax = Math.ceil(this.centerX + (0.5 * this.width / this.tileSize));
@@ -210,6 +210,9 @@ class StaticMaps {
         if (this.reverseY) tileY = ((1 << this.zoom) - tileY) - 1;
 
         result.push({
+          z: this.zoom,
+          x: tileX,
+          y: tileY,
           url: this.tileUrl.replace('{z}', this.zoom).replace('{x}', tileX).replace('{y}', tileY),
           box: [
             this.xToPx(x),
@@ -221,15 +224,8 @@ class StaticMaps {
       }
     }
 
-    const tilePromises = [];
-    result.forEach((r) => { tilePromises.push(this.getTile(r)); });
-
-    return new Promise((resolve, reject) => {
-      Promise.all(tilePromises)
-        .then((values) => this.image.draw(values.filter((v) => v.success).map((v) => v.tile)))
-        .then(resolve)
-        .catch(reject);
-    });
+    const values = await Promise.all(result.map((r) => this.tileLoader(r)));
+    return this.image.draw(values.filter((v) => v.success).map((v) => v.tile));
   }
 
   drawFeatures() {
@@ -417,7 +413,7 @@ class StaticMaps {
    *  Fetching tiles from endpoint
    */
   getTile(data) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const options = {
         url: data.url,
         encoding: null,
@@ -438,10 +434,16 @@ class StaticMaps {
             body: res.body,
           },
         });
-      }).catch((error) => resolve({
-        success: false,
-        error,
-      }));
+      }).catch((error) => {
+        if (error.status === 404) {
+          resolve({
+            success: false,
+            error,
+          });
+        } else {
+          reject(error);
+        }
+      });
     });
   }
 }
