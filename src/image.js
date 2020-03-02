@@ -1,8 +1,6 @@
 import sharp from 'sharp';
 import last from 'lodash.last';
 
-import asyncQueue from './helper/asyncQueue';
-
 export default class Image {
   constructor(options = {}) {
     this.options = options;
@@ -59,69 +57,51 @@ export default class Image {
   }
 
   async draw(tiles) {
-    return new Promise(async (resolve) => {
-      // Generate baseimage
-      const baselayer = sharp({
-        create: {
-          width: this.width,
-          height: this.height,
-          channels: 4,
-          background: {
-            r: 0, g: 0, b: 0, alpha: 0,
-          },
+    // Generate baseimage
+    const baselayer = sharp({
+      create: {
+        width: this.width,
+        height: this.height,
+        channels: 4,
+        background: {
+          r: 0, g: 0, b: 0, alpha: 0,
         },
-      });
-      // Save baseimage as buffer
-      let tempbuffer = await baselayer.png().toBuffer();
-
-      // Prepare tiles for composing baselayer
-      const tileParts = [];
-      tiles.forEach((tile, i) => {
-        tileParts.push(this.prepareTileParts(tile, i));
-      });
-      const preparedTiles = (await Promise.all(tileParts)).filter(v => v.success);
-
-      // Compose all prepared tiles to the baselayer
-      const queue = [];
-      preparedTiles.forEach((preparedTile) => {
-        queue.push(async () => {
-          if (!preparedTile) return;
-          const { position, data } = preparedTile;
-          position.top = Math.round(position.top);
-          position.left = Math.round(position.left);
-          tempbuffer = await sharp(tempbuffer)
-            .composite([{ input: data, ...position }])
-            .toBuffer();
-        });
-      });
-      await asyncQueue(queue);
-      this.image = tempbuffer;
-
-      resolve(true);
+      },
     });
+    // Prepare tiles for composing baselayer
+    const preparedTiles = (await Promise.all(tiles
+      .map((tile, i) => this.prepareTileParts(tile, i))))
+      .filter((v) => v.success);
+
+    // Compose all prepared tiles to the baselayer
+    this.image = await preparedTiles.reduce(
+      (prevPromise, preparedTile) => prevPromise.then((tempbuffer) => {
+        if (!preparedTile) return Promise.resolve(tempbuffer);
+        const { position, data } = preparedTile;
+        position.top = Math.round(position.top);
+        position.left = Math.round(position.left);
+        return sharp(tempbuffer)
+          .composite([{ input: data, ...position }])
+          .toBuffer();
+      }), baselayer.png().toBuffer(),
+    );
+    return true;
   }
 
   /**
    * Save image to file
    */
-  save(fileName = 'output.png', outOpts = {}) {
+  async save(fileName = 'output.png', outOpts = {}) {
     const format = last(fileName.split('.'));
     const outputOptions = outOpts;
     outputOptions.quality = outputOptions.quality || this.quality;
-    return new Promise(async (resolve, reject) => {
-      try {
-        switch (format.toLowerCase()) {
-          case 'webp': await sharp(this.image).webp(outputOptions).toFile(fileName); break;
-          case 'jpg':
-          case 'jpeg': await sharp(this.image).jpeg(outputOptions).toFile(fileName); break;
-          case 'png':
-          default: await sharp(this.image).png(outputOptions).toFile(fileName); break;
-        }
-        resolve();
-      } catch (err) {
-        reject(err);
-      }
-    });
+    switch (format.toLowerCase()) {
+      case 'webp': await sharp(this.image).webp(outputOptions).toFile(fileName); break;
+      case 'jpg':
+      case 'jpeg': await sharp(this.image).jpeg(outputOptions).toFile(fileName); break;
+      case 'png':
+      default: await sharp(this.image).png(outputOptions).toFile(fileName); break;
+    }
   }
 
   /**
@@ -130,17 +110,13 @@ export default class Image {
   buffer(mime = 'image/png', outOpts = {}) {
     const outputOptions = outOpts;
     outputOptions.quality = outputOptions.quality || this.quality;
-    return new Promise(async (resolve) => {
-      let buffer;
-      switch (mime.toLowerCase()) {
-        case 'image/webp': buffer = await sharp(this.image).webp(outputOptions).toBuffer(); break;
-        case 'image/jpeg':
-        case 'image/jpg': buffer = await sharp(this.image).jpeg(outputOptions).toBuffer(); break;
-        case 'image/png':
-        default: buffer = await sharp(this.image).png(outputOptions).toBuffer(); break;
-      }
-      resolve(buffer);
-    });
+    switch (mime.toLowerCase()) {
+      case 'image/webp': return sharp(this.image).webp(outputOptions).toBuffer();
+      case 'image/jpeg':
+      case 'image/jpg': return sharp(this.image).jpeg(outputOptions).toBuffer();
+      case 'image/png':
+      default: return sharp(this.image).png(outputOptions).toBuffer();
+    }
   }
 }
 
