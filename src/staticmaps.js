@@ -34,7 +34,7 @@ class StaticMaps {
     this.paddingX = this.options.paddingX || 0;
     this.paddingY = this.options.paddingY || 0;
     this.padding = [this.paddingX, this.paddingY];
-    this.tileUrl = this.options.tileUrl;
+    this.tileUrl = this.options.tileUrl || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
     this.tileLoader = this.options.tileLoader || this.getTile.bind(this);
     this.tileSize = this.options.tileSize || 256;
     this.tileRequestTimeout = this.options.tileRequestTimeout;
@@ -194,9 +194,6 @@ class StaticMaps {
   }
 
   async drawBaselayer() {
-    if (!this.tileUrl) {
-      return this.image.draw([]);
-    }
     const xMin = Math.floor(this.centerX - (0.5 * this.width / this.tileSize));
     const yMin = Math.floor(this.centerY - (0.5 * this.height / this.tileSize));
     const xMax = Math.ceil(this.centerX + (0.5 * this.width / this.tileSize));
