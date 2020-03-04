@@ -76,7 +76,7 @@ function () {
     this.paddingX = this.options.paddingX || 0;
     this.paddingY = this.options.paddingY || 0;
     this.padding = [this.paddingX, this.paddingY];
-    this.tileUrl = this.options.tileUrl || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+    this.tileUrl = 'tileUrl' in this.options ? this.options.tileUrl : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
     this.tileLoader = this.options.tileLoader || this.getTile.bind(this);
     this.tileSize = this.options.tileSize || 256;
     this.tileRequestTimeout = this.options.tileRequestTimeout;
@@ -266,7 +266,7 @@ function () {
                       z: this.zoom,
                       x: tileX,
                       y: tileY,
-                      url: this.tileUrl.replace('{z}', this.zoom).replace('{x}', tileX).replace('{y}', tileY),
+                      url: this.tileUrl ? this.tileUrl.replace('{z}', this.zoom).replace('{x}', tileX).replace('{y}', tileY) : null,
                       box: [this.xToPx(x), this.yToPx(y), this.xToPx(x + 1), this.yToPx(y + 1)]
                     });
                   }
