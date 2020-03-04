@@ -1,5 +1,6 @@
 import sharp from 'sharp';
 import last from 'lodash.last';
+import asyncQueue from './helper/asyncQueue';
 
 export default class Image {
   constructor(options = {}) {
@@ -13,6 +14,7 @@ export default class Image {
    * Prepare all tiles to fit the baselayer
    */
   prepareTileParts(data) {
+    if (!data.body) return { success: false };
     return new Promise((resolve) => {
       const tile = sharp(data.body);
       tile
@@ -68,23 +70,31 @@ export default class Image {
         },
       },
     });
+    // Save baseimage as buffer
+    let tempbuffer = await baselayer.png().toBuffer();
+
     // Prepare tiles for composing baselayer
-    const preparedTiles = (await Promise.all(tiles
-      .map((tile, i) => this.prepareTileParts(tile, i))))
-      .filter((v) => v.success);
+    const tileParts = [];
+    tiles.forEach((tile, i) => {
+      tileParts.push(this.prepareTileParts(tile, i));
+    });
+    const preparedTiles = (await Promise.all(tileParts)).filter((v) => v.success);
 
     // Compose all prepared tiles to the baselayer
-    this.image = await preparedTiles.reduce(
-      (prevPromise, preparedTile) => prevPromise.then((tempbuffer) => {
-        if (!preparedTile) return Promise.resolve(tempbuffer);
+    const queue = [];
+    preparedTiles.forEach((preparedTile) => {
+      queue.push(async () => {
+        if (!preparedTile) return;
         const { position, data } = preparedTile;
         position.top = Math.round(position.top);
         position.left = Math.round(position.left);
-        return sharp(tempbuffer)
+        tempbuffer = await sharp(tempbuffer)
           .composite([{ input: data, ...position }])
           .toBuffer();
-      }), baselayer.png().toBuffer(),
-    );
+      });
+    });
+    await asyncQueue(queue);
+    this.image = tempbuffer;
     return true;
   }
 
