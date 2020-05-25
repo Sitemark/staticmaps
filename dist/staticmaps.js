@@ -244,7 +244,7 @@ function () {
       _regenerator["default"].mark(function _callee() {
         var _this = this;
 
-        var xMin, yMin, xMax, yMax, result, x, y, maxTile, tileX, tileY, values;
+        var xMin, yMin, xMax, yMax, result, x, y, maxTile, tileX, tileY, values, foundTiles;
         return _regenerator["default"].wrap(function _callee$(_context) {
           while (1) {
             switch (_context.prev = _context.next) {
@@ -279,13 +279,25 @@ function () {
 
               case 8:
                 values = _context.sent;
+                foundTiles = values.filter(function (v) {
+                  return v.success;
+                });
+
+                if (!(foundTiles.length === 0)) {
+                  _context.next = 12;
+                  break;
+                }
+
+                throw new Error('Baselayer does not exist');
+
+              case 12:
                 return _context.abrupt("return", this.image.draw(values.filter(function (v) {
                   return v.success;
                 }).map(function (v) {
                   return v.tile;
                 })));
 
-              case 10:
+              case 13:
               case "end":
                 return _context.stop();
             }

@@ -225,6 +225,8 @@ class StaticMaps {
     }
 
     const values = await Promise.all(result.map((r) => this.tileLoader(r)));
+    const foundTiles = values.filter((v) => v.success);
+    if (foundTiles.length === 0) throw new Error('Baselayer does not exist');
     return this.image.draw(values.filter((v) => v.success).map((v) => v.tile));
   }
 
