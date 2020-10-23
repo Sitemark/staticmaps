@@ -644,6 +644,18 @@ function () {
       var _this9 = this;
 
       return new Promise(function (resolve, reject) {
+        // custom for rendering map without base layer
+        if (data.url === null) {
+          return resolve({
+            success: true,
+            tile: {
+              url: data.url,
+              box: data.box,
+              body: null
+            }
+          });
+        }
+
         var options = {
           url: data.url,
           encoding: null,
