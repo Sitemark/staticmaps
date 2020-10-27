@@ -415,8 +415,8 @@ class StaticMaps {
   getTile(data) {
     return new Promise((resolve, reject) => {
       // custom for rendering map without base layer
-      if( data.url === null ){
-        return resolve({
+      if (data.url === null) {
+        resolve({
           success: true,
           tile: {
             url: data.url,
@@ -424,6 +424,7 @@ class StaticMaps {
             body: null,
           },
         });
+        return;
       }
 
       const options = {

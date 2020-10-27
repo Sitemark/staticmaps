@@ -646,7 +646,7 @@ function () {
       return new Promise(function (resolve, reject) {
         // custom for rendering map without base layer
         if (data.url === null) {
-          return resolve({
+          resolve({
             success: true,
             tile: {
               url: data.url,
@@ -654,6 +654,7 @@ function () {
               body: null
             }
           });
+          return;
         }
 
         var options = {
