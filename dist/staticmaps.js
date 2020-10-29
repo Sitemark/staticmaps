@@ -677,7 +677,7 @@ function () {
             }
           });
         })["catch"](function (error) {
-          if (error.status === 404) {
+          if ((error.statusCode || error.status) === 404) {
             resolve({
               success: false,
               error: error

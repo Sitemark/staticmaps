@@ -448,7 +448,7 @@ class StaticMaps {
           },
         });
       }).catch((error) => {
-        if (error.status === 404) {
+        if ((error.statusCode || error.status) === 404) {
           resolve({
             success: false,
             error,
