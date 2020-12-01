@@ -414,6 +414,19 @@ class StaticMaps {
    */
   getTile(data) {
     return new Promise((resolve, reject) => {
+      // custom for rendering map without base layer
+      if (data.url === null) {
+        resolve({
+          success: true,
+          tile: {
+            url: data.url,
+            box: data.box,
+            body: null,
+          },
+        });
+        return;
+      }
+
       const options = {
         url: data.url,
         encoding: null,
@@ -435,7 +448,7 @@ class StaticMaps {
           },
         });
       }).catch((error) => {
-        if (error.status === 404) {
+        if ((error.statusCode || error.status) === 404) {
           resolve({
             success: false,
             error,

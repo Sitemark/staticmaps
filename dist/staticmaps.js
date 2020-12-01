@@ -644,6 +644,19 @@ function () {
       var _this9 = this;
 
       return new Promise(function (resolve, reject) {
+        // custom for rendering map without base layer
+        if (data.url === null) {
+          resolve({
+            success: true,
+            tile: {
+              url: data.url,
+              box: data.box,
+              body: null
+            }
+          });
+          return;
+        }
+
         var options = {
           url: data.url,
           encoding: null,
@@ -664,7 +677,7 @@ function () {
             }
           });
         })["catch"](function (error) {
-          if (error.status === 404) {
+          if ((error.statusCode || error.status) === 404) {
             resolve({
               success: false,
               error: error
